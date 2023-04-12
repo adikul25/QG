@@ -4,6 +4,7 @@ import csv
 import streamlit as st
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
 import sentencepiece
+import torch
 
 # Define the T5 model and tokenizer
 model_name = "allenai/t5-small-squad2-question-generation"
