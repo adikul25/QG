@@ -1,4 +1,4 @@
 streamlit==1.19.0
 transformers==4.24.0
 sentencepiece==0.1.97
-torch==1.9.1+cu111
+torch==1.9.1
