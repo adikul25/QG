@@ -12,9 +12,5 @@ if st.button("Generate Questions"):
     with st.spinner("Generating Questions..."):
         df = generate_questions(folder_path, num_questions)
         st.success("Questions Generated!")
-        st.download_button(
-            label="Download Questions",
-            data=open(output_file_path, "rb").read(),
-            file_name=output_file_path,
-            mime="text/csv"
-            )
+        st.dataframe(df)
+        output_text = df.to_csv(sep="\t", index=False)
