@@ -3,9 +3,9 @@ import random
 import csv
 import streamlit as st
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
-import sentencepiece
 import torch
-import pandas as pd
+import zipfile
+
 
 # Define the T5 model and tokenizer
 model_name = "allenai/t5-small-squad2-question-generation"
@@ -19,38 +19,37 @@ def run_model(input_string, **generator_args):
     output = tokenizer.batch_decode(res, skip_special_tokens=True)
     return output
 
+import pandas as pd
 
-
-def generate_questions(folder_path, num_questions):
+def generate_questions(file, num_questions):
     # create an empty list to hold the generated questions
     generated_questions = []
-    
 
-    # loop through files in folder
-    for file_name in os.listdir(folder_path):
-        if file_name.endswith(".txt"):
-            file_path = os.path.join(folder_path, file_name)
-            with open(file_path, "r") as f:
-                lines = f.readlines()
-                random.shuffle(lines)
-                generated_questions_count = 0
-                for line in lines:
-                    # split line into chunks of max length 2048
-                    line_chunks = [line[i:i+2048] for i in range(0, len(line), 2048)]
-                    for chunk in line_chunks:
-                        if chunk.strip() and not chunk.isspace():
-                            questions = run_model(f"generate questions: {chunk}")
-                            for question in questions:
-                                generated_questions.append({"file_name": file_name, "generated_question": question})
-                                generated_questions_count += 1
+    with zipfile.ZipFile(file, 'r') as zip_ref:
+        # loop through files in zip file
+        for file_name in zip_ref.namelist():
+            if file_name.endswith(".txt"):
+                with zip_ref.open(file_name) as f:
+                    lines = f.readlines()
+                    random.shuffle(lines)
+                    generated_questions_count = 0
+                    for line in lines:
+                        # split line into chunks of max length 2048
+                        line_chunks = [line[i:i+2048] for i in range(0, len(line), 2048)]
+                        for chunk in line_chunks:
+                            if chunk.strip() and not chunk.isspace():
+                                questions = run_model(f"generate questions: {chunk}")
+                                for question in questions:
+                                    generated_questions.append({"file_name": file_name, "generated_question": question})
+                                    generated_questions_count += 1
+                                    if generated_questions_count >= num_questions:
+                                        break
                                 if generated_questions_count >= num_questions:
                                     break
                             if generated_questions_count >= num_questions:
                                 break
                         if generated_questions_count >= num_questions:
                             break
-                    if generated_questions_count >= num_questions:
-                        break
 
     # convert the list of generated questions to a Pandas DataFrame
     df = pd.DataFrame(generated_questions)
