@@ -10,7 +10,7 @@ num_questions = st.number_input("Enter the number of questions to generate:", va
 # Generate the questions and download the output file
 if st.button("Generate Questions"):
     with st.spinner("Generating Questions..."):
-        output_file_path = generate_questions(folder_path, num_questions)
+        df = generate_questions(folder_path, num_questions)
         st.success("Questions Generated!")
         st.download_button(
             label="Download Questions",
