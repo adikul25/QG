@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from utils import generate_questions, generate_file_questions1
+from utils import generate_questions, generate_file_questions
 
 st.title("Question Generation App")
 
