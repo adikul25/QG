@@ -5,6 +5,7 @@ import streamlit as st
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
 import torch
 import zipfile
+import pandas as pd
 
 
 # Define the T5 model and tokenizer
@@ -19,7 +20,7 @@ def run_model(input_string, **generator_args):
     output = tokenizer.batch_decode(res, skip_special_tokens=True)
     return output
 
-import pandas as pd
+
 
 def generate_questions(file, num_questions):
     # create an empty list to hold the generated questions
@@ -57,27 +58,53 @@ def generate_questions(file, num_questions):
     return df
 
 
-#
-# # Define the Streamlit app
-# def main():
-#     st.title("Question Generation App")
-#
-#     # Get the folder path and number of questions to generate from the user
-#     folder_path = st.text_input("Enter the folder path:")
-#     num_questions = st.number_input("Enter the number of questions to generate:", value=3)
-#
-#     # Generate the questions and download the output file
-#     if st.button("Generate Questions"):
-#         with st.spinner("Generating Questions..."):
-#             output_file_path = generate_questions(folder_path, num_questions)
-#             st.success("Questions Generated!")
-#             st.download_button(
-#                 label="Download Questions",
-#                 data=open(output_file_path, "rb").read(),
-#                 file_name=output_file_path,
-#                 mime="text/csv"
-#             )
-#
-# # Run the Streamlit app
-# if __name__ == "__main__":
-#     main()
+def generate_file_questions(file, num_questions):
+
+    max_length = 128
+    # initialize generated_questions
+    generated_questions = []
+    # read file contents
+    lines = file.read().decode("utf-8").split("\n")
+    num_lines = len(lines)
+    batch_size = 100
+    num_batches = (num_lines + batch_size - 1) // batch_size
+
+    # shuffle lines
+    random.shuffle(lines)
+
+    for i in range(num_batches):
+        start = i * batch_size
+        end = min((i + 1) * batch_size, num_lines)
+        batch_lines = lines[start:end]
+
+        for line in batch_lines:
+            line = line.strip()
+            if not line:
+                continue
+            if len(line) > 1024:
+                # split line into multiple lines of maximum length 1024
+                split_lines = [line[j:j+512] for j in range(0, len(line), 1024)]
+                for split_line in split_lines:
+                    questions = run_model(f"generate questions: {split_line}",
+                                          num_return_sequences=1,
+                                          max_length=max_length)
+                    generated_questions.extend(questions)
+                    if len(generated_questions) >= num_questions:
+                        break
+                if len(generated_questions) >= num_questions:
+                    break
+            else:
+                questions = run_model(f"generate questions: {line}",
+                                      num_return_sequences=1,
+                                      max_length=max_length)
+                generated_questions.extend(questions)
+                if len(generated_questions) >= num_questions:
+                    break
+
+        if len(generated_questions) >= num_questions:
+            break
+
+    # convert the list of generated questions to a Pandas DataFrame
+    df = pd.DataFrame(generated_questions, columns=["generated_question"])
+
+    return df.head(num_questions)
